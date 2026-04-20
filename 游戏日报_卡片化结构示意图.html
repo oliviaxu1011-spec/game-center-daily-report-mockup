@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>游戏日报 · 卡片化结构示意图</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf3 100%);
+    color: #1d2129;
+    padding: 40px 32px 80px;
+    line-height: 1.6;
+  }
+  .container { max-width: 1440px; margin: 0 auto; }
+
+  /* Header */
+  .header {
+    background: linear-gradient(120deg, #1e3a8a 0%, #3b82f6 100%);
+    color: #fff;
+    padding: 32px 36px;
+    border-radius: 20px;
+    margin-bottom: 32px;
+    box-shadow: 0 10px 30px rgba(30, 58, 138, 0.2);
+  }
+  .header h1 { font-size: 26px; font-weight: 700; margin-bottom: 8px; }
+  .header .subtitle { opacity: 0.85; font-size: 14px; }
+  .header .meta {
+    display: flex; gap: 24px; margin-top: 16px;
+    font-size: 13px; opacity: 0.9;
+  }
+  .header .meta span::before { content: "· "; opacity: 0.6; }
+  .header .meta span:first-child::before { content: ""; }
+
+  /* Section titles */
+  .section-title {
+    font-size: 18px; font-weight: 700; color: #1d2129;
+    margin: 40px 0 20px; padding-left: 12px;
+    border-left: 4px solid #3b82f6;
+  }
+  .section-desc { color: #4e5969; font-size: 13px; margin-bottom: 24px; padding-left: 16px; }
+
+  /* Layout: Left = mockup, Right = structure tree */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 32px;
+    align-items: start;
+  }
+
+  /* Phone mockup */
+  .phone {
+    background: #fff;
+    border-radius: 36px;
+    padding: 14px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.12);
+    position: sticky;
+    top: 20px;
+  }
+  .phone-screen {
+    background: #f7f8fa;
+    border-radius: 26px;
+    overflow: hidden;
+    height: 680px;
+    overflow-y: auto;
+  }
+  .phone-screen::-webkit-scrollbar { width: 0; }
+
+  .status-bar {
+    background: linear-gradient(120deg, #1e3a8a, #3b82f6);
+    color: #fff; padding: 10px 18px; font-size: 12px;
+    display: flex; justify-content: space-between;
+  }
+  /* Hero (顶部战报 常驻) */
+  .hero {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    color: #fff; padding: 18px 18px 22px;
+  }
+  .hero .title { font-size: 15px; font-weight: 600; opacity: 0.9; margin-bottom: 10px; }
+  .hero .big-stats { display: flex; gap: 18px; margin-top: 10px; }
+  .hero .stat { flex: 1; }
+  .hero .stat .num { font-size: 22px; font-weight: 700; }
+  .hero .stat .label { font-size: 11px; opacity: 0.8; }
+  .hero .date { font-size: 11px; opacity: 0.7; }
+
+  /* Cards */
+  .card {
+    background: #fff;
+    margin: 12px 14px;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    border: 1.5px solid transparent;
+    position: relative;
+  }
+  .card.highlight-1 { border-color: #3b82f6; }
+  .card.highlight-2 { border-color: #10b981; }
+  .card.highlight-3 { border-color: #f59e0b; }
+  .card.highlight-4 { border-color: #ef4444; }
+
+  .card-label {
+    position: absolute; top: -10px; left: 12px;
+    font-size: 10px; color: #fff; padding: 3px 10px; border-radius: 10px;
+    font-weight: 600;
+  }
+  .card.highlight-1 .card-label { background: #3b82f6; }
+  .card.highlight-2 .card-label { background: #10b981; }
+  .card.highlight-3 .card-label { background: #f59e0b; }
+  .card.highlight-4 .card-label { background: #ef4444; }
+
+  .card-title {
+    font-size: 14px; font-weight: 600; margin-bottom: 8px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .card-title .more { font-size: 11px; color: #86909c; font-weight: 400; }
+  .card-content {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    font-size: 12px; color: #4e5969;
+  }
+  .mini-row {
+    display: flex; align-items: center; gap: 8px; padding: 6px 0;
+    font-size: 12px; color: #4e5969;
+  }
+  .avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg, #93c5fd, #3b82f6);
+  }
+  .video-row { display: flex; gap: 8px; overflow-x: auto; }
+  .video-thumb {
+    flex-shrink: 0; width: 110px; height: 64px;
+    background: linear-gradient(135deg, #475569, #1e293b);
+    border-radius: 8px; position: relative;
+  }
+  .video-thumb::after {
+    content: "▶"; position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 16px; opacity: 0.7;
+  }
+  .chip {
+    display: inline-block; padding: 4px 10px; border-radius: 12px;
+    background: #f0f3f8; font-size: 11px; color: #4e5969;
+  }
+  .chip.new { background: #fef2f2; color: #ef4444; font-weight: 600; }
+
+  /* Structure tree (right side) */
+  .structure {
+    background: #fff;
+    border-radius: 20px;
+    padding: 28px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+  }
+  .domain {
+    margin-bottom: 24px;
+    padding: 20px;
+    border-radius: 14px;
+    border: 2px solid;
+    position: relative;
+  }
+  .domain.d1 { background: #eff6ff; border-color: #3b82f6; }
+  .domain.d2 { background: #ecfdf5; border-color: #10b981; }
+  .domain.d3 { background: #fffbeb; border-color: #f59e0b; }
+  .domain.d4 { background: #fef2f2; border-color: #ef4444; }
+
+  .domain-head {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
+  }
+  .domain-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; color: #fff; font-weight: 700;
+  }
+  .d1 .domain-icon { background: #3b82f6; }
+  .d2 .domain-icon { background: #10b981; }
+  .d3 .domain-icon { background: #f59e0b; }
+  .d4 .domain-icon { background: #ef4444; }
+
+  .domain-title {
+    font-size: 16px; font-weight: 700; color: #1d2129;
+  }
+  .domain-tag {
+    font-size: 11px; color: #86909c;
+    background: rgba(255,255,255,0.6); padding: 2px 8px; border-radius: 8px;
+    margin-left: 4px;
+  }
+
+  .module-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .module {
+    background: rgba(255,255,255,0.8);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .module .mod-name { color: #1d2129; font-weight: 500; }
+  .module .mod-tag {
+    font-size: 10px; padding: 2px 6px; border-radius: 4px;
+    background: #e5e7eb; color: #4b5563;
+  }
+  .module .mod-tag.old { background: #dcfce7; color: #15803d; }
+  .module .mod-tag.new { background: #fee2e2; color: #b91c1c; font-weight: 600; }
+
+  /* Flow diagram */
+  .flow-section {
+    background: #fff;
+    border-radius: 20px;
+    padding: 32px;
+    margin-top: 40px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+  }
+  .flow-grid {
+    display: grid;
+    grid-template-columns: 1fr 60px 1fr;
+    align-items: center;
+    gap: 20px;
+  }
+  .flow-box {
+    background: #f7f8fa;
+    border-radius: 14px;
+    padding: 20px;
+  }
+  .flow-box.before { border: 2px dashed #cbd5e1; }
+  .flow-box.after { border: 2px solid #3b82f6; background: #eff6ff; }
+  .flow-box h3 {
+    font-size: 14px; margin-bottom: 14px;
+    color: #1d2129; display: flex; align-items: center; gap: 8px;
+  }
+  .flow-box h3 .badge {
+    font-size: 10px; padding: 2px 8px; border-radius: 6px; font-weight: 600;
+  }
+  .flow-box.before .badge { background: #e5e7eb; color: #4b5563; }
+  .flow-box.after .badge { background: #3b82f6; color: #fff; }
+  .flow-box ul { list-style: none; padding: 0; }
+  .flow-box li {
+    padding: 6px 10px; margin: 4px 0;
+    background: #fff; border-radius: 6px;
+    font-size: 12px; color: #4e5969;
+    border-left: 3px solid #cbd5e1;
+  }
+  .flow-box.after li { border-left-color: #3b82f6; font-weight: 500; }
+  .flow-arrow {
+    font-size: 32px; color: #3b82f6; text-align: center;
+  }
+
+  /* Principles */
+  .principles {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-top: 24px;
+  }
+  .principle {
+    background: #fff; border-radius: 14px; padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    border-top: 3px solid #3b82f6;
+  }
+  .principle .num {
+    font-size: 24px; font-weight: 800; color: #3b82f6;
+  }
+  .principle h4 { font-size: 14px; margin: 8px 0 6px; color: #1d2129; }
+  .principle p { font-size: 12px; color: #4e5969; line-height: 1.5; }
+
+  /* Extension table */
+  .ext-table {
+    background: #fff; border-radius: 16px; overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    margin-top: 20px;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 14px 18px; text-align: left; border-bottom: 1px solid #f0f3f8; }
+  th { background: #f7f8fa; color: #1d2129; font-weight: 600; font-size: 13px; }
+  tr:last-child td { border-bottom: none; }
+  td .pill {
+    display: inline-block; padding: 3px 10px; border-radius: 10px;
+    font-size: 11px; font-weight: 500; margin-right: 4px;
+  }
+  .pill.now { background: #dcfce7; color: #15803d; }
+  .pill.soon { background: #fef3c7; color: #a16207; }
+  .pill.future { background: #e0e7ff; color: #4338ca; }
+
+  .footer {
+    text-align: center; color: #86909c; font-size: 12px;
+    margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb;
+  }
+
+  @media (max-width: 1024px) {
+    .main-grid { grid-template-columns: 1fr; }
+    .phone { position: relative; margin: 0 auto; }
+    .principles { grid-template-columns: repeat(2, 1fr); }
+    .flow-grid { grid-template-columns: 1fr; }
+    .flow-arrow { transform: rotate(90deg); }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>⚡ 游戏日报 · 卡片化结构示意图</h1>
+    <div class="subtitle">按「功能视角」融合重构 · 为游戏中心内容扩展预留接口</div>
+    <div class="meta">
+      <span>版本 v1.0</span>
+      <span>产品 oliviaxzu</span>
+      <span>设计 eyalcchen</span>
+      <span>2026-04-20</span>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div class="section-title">📱 首屏结构示意（左：手机原型 / 右：功能域拆解）</div>
+  <div class="section-desc">左侧为重构后的日报首屏排布，右侧为每个功能域对应的模块收敛与游戏中心扩展点。</div>
+
+  <div class="main-grid">
+    <!-- Phone mockup -->
+    <div class="phone">
+      <div class="phone-screen">
+        <div class="status-bar">
+          <span>9:00</span>
+          <span>📶 🔋</span>
+        </div>
+
+        <!-- 🎯 昨日战报大卡（游戏中心风：banner 顶部 + 轻量数据层） -->
+        <div style="margin:14px;border-radius:18px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,0.06);background:#fff;border:1px solid #eef0f5;">
+          <!-- 🎮 游戏 Banner（顶部大图 + 游戏身份区） -->
+          <div style="position:relative;height:150px;background:linear-gradient(135deg,#1e1b4b 0%,#4c1d95 35%,#7c2d12 70%,#b45309 100%);overflow:hidden;">
+            <!-- 装饰光效 -->
+            <div style="position:absolute;top:-30px;right:-30px;width:140px;height:140px;background:radial-gradient(circle,rgba(251,191,36,0.35),transparent 70%);border-radius:50%;"></div>
+            <div style="position:absolute;bottom:-40px;left:-20px;width:120px;height:120px;background:radial-gradient(circle,rgba(147,51,234,0.4),transparent 70%);border-radius:50%;"></div>
+            <!-- 王者峡谷剪影（用 emoji 模拟游戏氛围）-->
+            <div style="position:absolute;top:18px;right:50%;font-size:42px;opacity:0.15;transform:translateX(50%);">⚔️🏰</div>
+
+            <!-- 顶部操作栏：返回 + 分享 -->
+            <div style="position:absolute;top:10px;left:10px;right:10px;display:flex;justify-content:space-between;align-items:center;">
+              <div style="width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,0.3);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;">‹</div>
+              <div style="width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,0.3);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;">↗</div>
+            </div>
+
+            <!-- 🔮 运势胶囊（右下角玻璃拟态） -->
+            <div style="position:absolute;top:46px;right:12px;display:inline-flex;align-items:center;gap:5px;padding:5px 10px;background:rgba(255,255,255,0.2);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.3);border-radius:20px;">
+              <span style="font-size:11px;">🔮</span>
+              <span style="font-size:11px;font-weight:700;color:#fff;letter-spacing:0.5px;">势如破竹</span>
+              <span style="font-size:8px;color:#fde68a;">⭐⭐⭐⭐⭐</span>
+            </div>
+            <!-- 一句运势解读 -->
+            <div style="position:absolute;top:78px;right:12px;max-width:200px;text-align:right;font-size:10px;color:rgba(255,255,255,0.85);line-height:1.4;text-shadow:0 1px 2px rgba(0,0,0,0.3);">
+              连胜正旺，今晚冲王者 🚀
+            </div>
+
+            <!-- 左下：游戏图标 + 游戏名 + 日期 -->
+            <div style="position:absolute;bottom:14px;left:14px;display:flex;align-items:center;gap:10px;">
+              <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#fbbf24,#dc2626);display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 2px 8px rgba(0,0,0,0.3);border:2px solid rgba(255,255,255,0.2);">👑</div>
+              <div>
+                <div style="font-size:17px;font-weight:800;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.4);letter-spacing:0.5px;">王者荣耀日报</div>
+                <div style="font-size:11px;color:rgba(255,255,255,0.8);margin-top:2px;">4月20日 · 星期一</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 昨日对局 - 分区标题 -->
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 16px 6px;">
+            <div style="font-size:15px;font-weight:700;color:#1d2129;">昨日对局</div>
+            <span style="font-size:11px;color:#86909c;">完整复盘 ›</span>
+          </div>
+
+          <!-- 4 格总览数据（主视觉）-->
+          <div style="display:flex;background:#fff;border-bottom:1px solid #eef0f5;padding:4px 0 14px;">
+            <div style="flex:1;text-align:center;padding:8px 4px;">
+              <div style="font-size:26px;font-weight:800;color:#1d2129;line-height:1;">16</div>
+              <div style="font-size:11px;color:#86909c;margin-top:6px;">总场次</div>
+            </div>
+            <div style="flex:1;text-align:center;padding:8px 4px;">
+              <div style="font-size:26px;font-weight:800;color:#1d2129;line-height:1;">50.3<span style="font-size:14px;color:#86909c;">%</span> <span style="font-size:12px;color:#10b981;">↑</span></div>
+              <div style="font-size:11px;color:#86909c;margin-top:6px;">胜率</div>
+            </div>
+            <div style="flex:1;text-align:center;padding:8px 4px;">
+              <div style="font-size:26px;font-weight:800;color:#1d2129;line-height:1;">2364 <span style="font-size:12px;color:#ef4444;">↓</span></div>
+              <div style="font-size:11px;color:#86909c;margin-top:6px;">伤害均值</div>
+            </div>
+            <div style="flex:1;text-align:center;padding:8px 4px;">
+              <div style="font-size:26px;font-weight:800;color:#1d2129;line-height:1;">8 <span style="font-size:12px;color:#10b981;">↑</span></div>
+              <div style="font-size:11px;color:#86909c;margin-top:6px;">MVP</div>
+            </div>
+          </div>
+
+          <!-- 底部：单局对局详情（替代 AI 一句话点评）+ chips + 按钮 -->
+          <div style="padding:14px 14px 14px;position:relative;">
+            <div style="position:absolute;top:-9px;left:12px;font-size:10px;color:#fff;background:#3b82f6;padding:3px 10px;border-radius:10px;font-weight:600;">① 日复盘</div>
+
+            <!-- 📋 昨日最后一局 · 对局详情卡 -->
+            <div style="margin-bottom:10px;padding:10px;background:#f7f8fa;border-radius:10px;border:1px solid #eef0f5;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                <span style="font-size:10px;color:#86909c;font-weight:600;">昨日最后一局</span>
+                <span style="font-size:10px;color:#86909c;">03-25 13:28 · 排位赛</span>
+              </div>
+              <!-- 对局信息行 -->
+              <div style="display:flex;align-items:center;gap:10px;">
+                <!-- 英雄头像 + 失败/胜利徽章 -->
+                <div style="position:relative;flex-shrink:0;">
+                  <div style="width:46px;height:46px;border-radius:10px;background:linear-gradient(135deg,#fbbf24,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:24px;border:2px solid #fde68a;">👸</div>
+                  <span style="position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:700;color:#fff;background:#ef4444;padding:1px 6px;border-radius:8px;white-space:nowrap;box-shadow:0 1px 3px rgba(239,68,68,0.4);">失败</span>
+                </div>
+                <!-- KDA + 英雄名 -->
+                <div style="flex:1;min-width:0;">
+                  <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+                    <span style="font-size:13px;font-weight:700;color:#1d2129;">妲己</span>
+                    <span style="font-size:10px;color:#fff;background:#f59e0b;padding:1px 5px;border-radius:4px;font-weight:600;">MVP</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:#1d2129;">
+                    <span style="color:#ef4444;">13</span>
+                    <span style="color:#86909c;font-weight:400;">杀</span>
+                    <span style="color:#1d2129;">/ 2</span>
+                    <span style="color:#86909c;font-weight:400;">死</span>
+                    <span style="color:#1d2129;">/ 6</span>
+                    <span style="color:#86909c;font-weight:400;">助</span>
+                  </div>
+                  <div style="display:inline-flex;align-items:center;gap:3px;margin-top:3px;font-size:10px;color:#6b7280;background:#fff;padding:2px 6px;border-radius:6px;border:1px solid #eef0f5;">
+                    <span>🏅</span><span>金牌中路</span>
+                  </div>
+                </div>
+              </div>
+              <!-- AI 对局分析入口 -->
+              <div style="display:flex;align-items:center;gap:6px;margin-top:10px;padding:8px 10px;background:linear-gradient(90deg,#f5f3ff,#ede9fe);border-radius:8px;font-size:11px;color:#5b21b6;cursor:pointer;">
+                <span style="font-size:13px;">🤖</span>
+                <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">您的英雄在本局比赛中 13 杀零封全场，但后期决策稍…</span>
+                <span style="font-size:10px;color:#7c3aed;font-weight:600;white-space:nowrap;">AI 对局分析 ›</span>
+              </div>
+            </div>
+
+            <!-- 次要 chips -->
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <span class="chip">最佳英雄 · 妲己</span>
+              <span class="chip">30日胜率趋势 ↑</span>
+              <span class="chip new">🎯 中心任务 2/3</span>
+            </div>
+            <!-- 操作入口：排行榜 + 全部对局 -->
+            <div style="display:flex;gap:8px;margin-top:12px;padding-top:10px;border-top:1px dashed #d4dae3;">
+              <button style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;background:linear-gradient(135deg,#fef3c7,#fde68a);color:#b45309;border:none;border-radius:10px;padding:8px 10px;font-size:11px;font-weight:600;cursor:pointer;">
+                🏆 排行榜 <span style="font-size:9px;background:#f59e0b;color:#fff;padding:1px 5px;border-radius:6px;">好友第3</span>
+              </button>
+              <button style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;background:linear-gradient(135deg,#ede9fe,#ddd6fe);color:#6d28d9;border:none;border-radius:10px;padding:8px 10px;font-size:11px;font-weight:600;cursor:pointer;">
+                📋 全部对局 <span style="font-size:9px;background:#7c3aed;color:#fff;padding:1px 5px;border-radius:6px;">16</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: 社交互动 -->
+        <div class="card highlight-2">
+          <div class="card-label">② 社交互动</div>
+          <div class="card-title">
+            <span>好友 & 开黑</span>
+            <span class="more">全部好友 ›</span>
+          </div>
+          <!-- 开黑好友 · 横向滑动 -->
+          <div style="display:flex;gap:8px;overflow-x:auto;padding:4px 2px 8px;scrollbar-width:none;">
+            <div style="flex:0 0 68px;text-align:center;">
+              <div style="position:relative;width:48px;height:48px;margin:0 auto;">
+                <div class="avatar" style="width:48px;height:48px;background:linear-gradient(135deg,#60a5fa,#2563eb);"></div>
+                <span style="position:absolute;bottom:-2px;right:-2px;width:10px;height:10px;background:#22c55e;border:2px solid #fff;border-radius:50%;"></span>
+              </div>
+              <div style="font-size:10px;font-weight:600;margin-top:4px;">小明</div>
+              <div style="font-size:9px;color:#ef4444;">5连胜</div>
+            </div>
+            <div style="flex:0 0 68px;text-align:center;">
+              <div style="position:relative;width:48px;height:48px;margin:0 auto;">
+                <div class="avatar" style="width:48px;height:48px;background:linear-gradient(135deg,#fbbf24,#f59e0b);"></div>
+                <span style="position:absolute;bottom:-2px;right:-2px;width:10px;height:10px;background:#22c55e;border:2px solid #fff;border-radius:50%;"></span>
+              </div>
+              <div style="font-size:10px;font-weight:600;margin-top:4px;">阿强</div>
+              <div style="font-size:9px;color:#f59e0b;">榜Top3</div>
+            </div>
+            <div style="flex:0 0 68px;text-align:center;">
+              <div style="position:relative;width:48px;height:48px;margin:0 auto;">
+                <div class="avatar" style="width:48px;height:48px;background:linear-gradient(135deg,#f472b6,#ec4899);"></div>
+                <span style="position:absolute;bottom:-2px;right:-2px;width:10px;height:10px;background:#22c55e;border:2px solid #fff;border-radius:50%;"></span>
+              </div>
+              <div style="font-size:10px;font-weight:600;margin-top:4px;">小鱼</div>
+              <div style="font-size:9px;color:#6b7280;">在玩</div>
+            </div>
+            <div style="flex:0 0 68px;text-align:center;">
+              <div style="position:relative;width:48px;height:48px;margin:0 auto;">
+                <div class="avatar" style="width:48px;height:48px;background:linear-gradient(135deg,#a78bfa,#7c3aed);"></div>
+              </div>
+              <div style="font-size:10px;font-weight:600;margin-top:4px;">大壮</div>
+              <div style="font-size:9px;color:#9ca3af;">离线</div>
+            </div>
+            <div style="flex:0 0 68px;text-align:center;">
+              <div style="position:relative;width:48px;height:48px;margin:0 auto;">
+                <div class="avatar" style="width:48px;height:48px;background:linear-gradient(135deg,#34d399,#059669);"></div>
+                <span style="position:absolute;bottom:-2px;right:-2px;width:10px;height:10px;background:#22c55e;border:2px solid #fff;border-radius:50%;"></span>
+              </div>
+              <div style="font-size:10px;font-weight:600;margin-top:4px;">柚柚</div>
+              <div style="font-size:9px;color:#6b7280;">在玩</div>
+            </div>
+            <div style="flex:0 0 68px;text-align:center;">
+              <div style="width:48px;height:48px;margin:0 auto;border-radius:50%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:18px;color:#9ca3af;border:1px dashed #d1d5db;">›</div>
+              <div style="font-size:10px;color:#9ca3af;margin-top:4px;">更多</div>
+            </div>
+          </div>
+          <div style="font-size:10px;color:#6b7280;padding:0 2px 6px;">👥 3 位好友正在玩 · 点头像发起开黑          </div>
+
+
+
+          <!-- 子模块：推荐搭子（新增） -->
+          <div style="margin-top:12px;padding-top:10px;border-top:1px dashed #d4dae3;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <span style="font-size:12px;font-weight:600;color:#16a34a;">🤝 推荐搭子 <span class="chip new" style="margin-left:4px;">NEW</span></span>
+              <span class="more">换一批 ↻</span>
+            </div>
+            <div class="mini-row" style="background:#f0fdf4;border-radius:8px;padding:6px 8px;margin-bottom:6px;">
+              <div class="avatar" style="background:linear-gradient(135deg,#22c55e,#15803d)"></div>
+              <div style="flex:1;">
+                <div style="font-size:11px;font-weight:600;">柚子不加冰</div>
+                <div style="font-size:10px;color:#6b7280;">钻石 · 射手 · 同段位 · 活跃中</div>
+              </div>
+              <button style="background:#22c55e;color:#fff;border:none;border-radius:10px;padding:4px 10px;font-size:10px;font-weight:600;">组队</button>
+            </div>
+            <div class="mini-row" style="background:#f0fdf4;border-radius:8px;padding:6px 8px;">
+              <div class="avatar" style="background:linear-gradient(135deg,#06b6d4,#0e7490)"></div>
+              <div style="flex:1;">
+                <div style="font-size:11px;font-weight:600;">阿月</div>
+                <div style="font-size:10px;color:#6b7280;">星耀 · 辅助 · 作息匹配 · 在线</div>
+              </div>
+              <button style="background:#22c55e;color:#fff;border:none;border-radius:10px;padding:4px 10px;font-size:10px;font-weight:600;">组队</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: 高光视频 -->
+        <div class="card highlight-3">
+          <div class="card-label">③ 高光视频</div>
+          <div class="card-title">
+            <span>我的 / 开黑 / 好友高光</span>
+            <span class="more">更多 ›</span>
+          </div>
+          <div class="video-row">
+            <div class="video-thumb"></div>
+            <div class="video-thumb" style="background:linear-gradient(135deg,#7c3aed,#4c1d95)"></div>
+            <div class="video-thumb" style="background:linear-gradient(135deg,#059669,#064e3b)"></div>
+          </div>
+          <div style="margin-top:8px">
+            <span class="chip">我的 · 五杀</span>
+            <span class="chip">开黑 · 逆风翻盘</span>
+            <span class="chip new">中心 · 官方赛事集锦</span>
+          </div>
+        </div>
+
+        <!-- Card 4: 资讯 & 入口 -->
+        <div class="card highlight-4">
+          <div class="card-label">④ 资讯 & 入口</div>
+          <div class="card-title">
+            <span>游戏中心 · 今日精选</span>
+            <span class="more">查看全部 ›</span>
+          </div>
+          <div style="display:flex;gap:8px;overflow-x:auto;margin-top:6px">
+            <div style="flex-shrink:0;width:130px;padding:10px;background:linear-gradient(135deg,#fecaca,#fca5a5);border-radius:8px;font-size:11px;color:#7f1d1d;font-weight:600">
+              🎁 限时礼包<br><span style="font-weight:400;opacity:0.8">今日专属</span>
+            </div>
+            <div style="flex-shrink:0;width:130px;padding:10px;background:linear-gradient(135deg,#bfdbfe,#93c5fd);border-radius:8px;font-size:11px;color:#1e3a8a;font-weight:600">
+              📖 上分攻略<br><span style="font-weight:400;opacity:0.8">新英雄教学</span>
+            </div>
+            <div style="flex-shrink:0;width:130px;padding:10px;background:linear-gradient(135deg,#fde68a,#fcd34d);border-radius:8px;font-size:11px;color:#78350f;font-weight:600">
+              🏆 赛事预告<br><span style="font-weight:400;opacity:0.8">KPL 今晚19:00</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="text-align:center;padding:14px;color:#86909c;font-size:11px">
+          — 下拉刷新战绩 —
+        </div>
+      </div>
+    </div>
+
+    <!-- Structure tree -->
+    <div class="structure">
+      <!-- Domain 1 -->
+      <div class="domain d1">
+        <div class="domain-head">
+          <div class="domain-icon">📊</div>
+          <div>
+            <div class="domain-title">① 日复盘</div>
+            <span class="domain-tag">个人战绩总结</span>
+          </div>
+        </div>
+        <div class="module-grid">
+          <div class="module"><span class="mod-name">日报顶部战报</span><span class="mod-tag old">已有</span></div>
+          <div class="module"><span class="mod-name">对局数据</span><span class="mod-tag old">已有</span></div>
+          <div class="module"><span class="mod-name">近30日开黑总结</span><span class="mod-tag old">已有</span></div>
+          <div class="module"><span class="mod-name">🏆 好友排行榜</span><span class="mod-tag new">新增</span></div>
+          <div class="module"><span class="mod-name">🤖 AI 复盘</span><span class="mod-tag new">新增</span></div>
+          <div class="module"><span class="mod-name">段位变化曲线</span><span class="mod-tag new">可扩展</span></div>
+          <div class="module"><span class="mod-name">中心任务进度</span><span class="mod-tag new">可扩展</span></div>
+          <div class="module"><span class="mod-name">成就/徽章解锁</span><span class="mod-tag new">可扩展</span></div>
+        </div>
+      </div>
+
+      <!-- Domain 2 -->
+      <div class="domain d2">
+        <div class="domain-head">
+          <div class="domain-icon">👥</div>
+          <div>
+            <div class="domain-title">② 社交互动</div>
+            <span class="domain-tag">好友 & 关系链</span>
+          </div>
+        </div>
+        <div class="module-grid">
+          <div class="module"><span class="mod-name">开黑队友</span><span class="mod-tag old">已有</span></div>
+          <div class="module"><span class="mod-name">好友点评</span><span class="mod-tag old">已有</span></div>
+          <div class="module"><span class="mod-name">排行榜</span><span class="mod-tag old">已有</span></div>
+          <div class="module"><span class="mod-name">🤝 推荐搭子</span><span class="mod-tag new">新增</span></div>
+          <div class="module"><span class="mod-name">好友中心发帖</span><span class="mod-tag new">可扩展</span></div>
+          <div class="module"><span class="mod-name">组队召集令</span><span class="mod-tag new">可扩展</span></div>
+          <div class="module"><span class="mod-name">组队召集</span><span class="mod-tag new">可扩展</span></div>
+          <div class="module"><span class="mod-name">好友动态 Feed</span><span class="mod-tag new">可扩展</span></div>
+        </div>
+      </div>
+
+      <!-- Domain 3 -->
+      <div class="domain d3">
+        <div class="domain-head">
+          <div class="domain-icon">🎬</div>
+          <div>
+            <div class="domain-title">③ 高光视频</div>
+            <span class="domain-tag">视频消费形态</span>
+          </div>
+        </div>
+        <div class="module-grid">
+          <div class="module"><span class="mod-name">我的高光</span><span class="mod-tag old">已有</span></div>
+          <div class="module"><span class="mod-name">开黑高光</span><span class="mod-tag old">已有</span></div>
+          <div class="module"><span class="mod-name">好友高光</span><span class="mod-tag old">已有</span></div>
+          <div class="module"><span class="mod-name">官方赛事集锦</span><span class="mod-tag new">可扩展</span></div>
+          <div class="module"><span class="mod-name">攻略/教学视频</span><span class="mod-tag new">可扩展</span></div>
+          <div class="module"><span class="mod-name">中心精选视频流</span><span class="mod-tag new">可扩展</span></div>
+        </div>
+      </div>
+
+      <!-- Domain 4 -->
+      <div class="domain d4">
+        <div class="domain-head">
+          <div class="domain-icon">🎁</div>
+          <div>
+            <div class="domain-title">④ 资讯 & 入口</div>
+            <span class="domain-tag">内容 & 跳转</span>
+          </div>
+        </div>
+        <div class="module-grid">
+          <div class="module"><span class="mod-name">底部轮播</span><span class="mod-tag old">已有</span></div>
+          <div class="module"><span class="mod-name">资料卡入口</span><span class="mod-tag old">已有</span></div>
+          <div class="module"><span class="mod-name">分享卡</span><span class="mod-tag old">已有</span></div>
+          <div class="module"><span class="mod-name">中心活动/礼包</span><span class="mod-tag new">可扩展</span></div>
+          <div class="module"><span class="mod-name">攻略图文</span><span class="mod-tag new">可扩展</span></div>
+          <div class="module"><span class="mod-name">赛事日历</span><span class="mod-tag new">可扩展</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Extension Roadmap -->
+  <div class="section-title">🛣️ 游戏中心内容扩展路线</div>
+  <div class="section-desc">按「功能域 + 内容场景」的网格扩展，避免新增顶级模块造成结构膨胀。</div>
+  <div class="ext-table">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:140px">功能域</th>
+          <th>现阶段内容</th>
+          <th>近期可加（P1）</th>
+          <th>远期扩展（P2）</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>📊 日复盘</strong></td>
+          <td><span class="pill now">战绩</span><span class="pill now">开黑总结</span></td>
+          <td><span class="pill soon">🏆 好友排行榜</span><span class="pill soon">🤖 AI 复盘</span><span class="pill soon">中心任务进度</span><span class="pill soon">段位趋势</span></td>
+          <td><span class="pill future">成就徽章</span><span class="pill future">年度回顾</span></td>
+        </tr>
+        <tr>
+          <td><strong>👥 社交互动</strong></td>
+          <td><span class="pill now">队友</span><span class="pill now">排行榜</span></td>
+          <td><span class="pill soon">🤝 推荐搭子</span><span class="pill soon">好友在玩</span><span class="pill soon">组队召集</span></td>
+          <td><span class="pill future">好友中心发帖</span><span class="pill future">互动动态</span></td>
+        </tr>
+        <tr>
+          <td><strong>🎬 高光视频</strong></td>
+          <td><span class="pill now">我的/开黑/好友高光</span></td>
+          <td><span class="pill soon">赛事集锦</span><span class="pill soon">中心精选</span></td>
+          <td><span class="pill future">攻略视频流</span><span class="pill future">AI 解说</span></td>
+        </tr>
+        <tr>
+          <td><strong>🎁 资讯 & 入口</strong></td>
+          <td><span class="pill now">轮播</span><span class="pill now">资料卡</span><span class="pill now">分享卡</span></td>
+          <td><span class="pill soon">活动/礼包</span><span class="pill soon">赛事预告</span></td>
+          <td><span class="pill future">个性化攻略</span><span class="pill future">创作者推荐</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+
+  <div class="footer">
+    💡 天天 · 为 Olivia 整理 · 游戏中心日报交互重构方案 v1.0
+  </div>
+</div>
+</body>
+</html>
